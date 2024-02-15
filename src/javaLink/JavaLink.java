@@ -1,7 +1,21 @@
 package javaLink;
 
 
-import com.google.common.collect.Lists;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import soot.*;
 import soot.jimple.StringConstant;
 import soot.jimple.internal.JAssignStmt;
@@ -9,12 +23,7 @@ import soot.jimple.internal.JInvokeStmt;
 import soot.jimple.spark.SparkTransformer;
 import soot.jimple.toolkits.callgraph.*;
 import soot.options.Options;
-import util.config;
-
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import util.config;;
 
 public class JavaLink extends SceneTransformer {
 
@@ -58,40 +67,54 @@ public class JavaLink extends SceneTransformer {
         String path = config.loadJarPath();
         System.out.println(path);
 
+        System.out.println("[WEIMINN] Setting soot class path");
         Scene.v().setSootClassPath(path);
 
-
         //add an intra-procedural analysis phase to Soot
+        System.out.println("[WEIMINN] Starting intra-procedural analysis");
         JavaLink analysis = new JavaLink();
         PackManager.v().getPack("wjtp").add(new Transform(transform_str, analysis));
 
-
+        System.out.println("[WEIMINN] Excluding JDK Library");
         excludeJDKLibrary();
-
 
         Options.v().set_whole_program(true);
         Options.v().set_app(true);
         Options.v().set_validate(true);
 
-
-
+        System.out.println("[WEIMINN] Resolving " + mainClassStr);
         SootClass c = Scene.v().forceResolve(mainClassStr, SootClass.BODIES);
+
+        // for(SootMethod smtd: c.getMethods()){
+        //     System.out.println("[WEIMINN] Resolved " + smtd + " from " + mainClassStr);
+        // }
+
         for(String classTem : supportClassList){
+            // System.out.println("[WEIMINN] Resolving " + classTem);
             Scene.v().forceResolve(classTem, SootClass.BODIES);
         }
+        System.out.println("[WEIMINN] Resolved Supporting Classes");
 
+        System.out.println("[WEIMINN] Setting Application Class");
         c.setApplicationClass();
 
+        System.out.println("[WEIMINN] Loading Necessary Classes");
         Scene.v().loadNecessaryClasses();
 
 
         //Set all entrypoint and find mainclass
+        System.out.println("[WEIMINN] Setting Entrypoints");
         List<SootMethod> entryPoints = new ArrayList<SootMethod>();
+        
+        int len = Scene.v().getApplicationClasses().size();
+        int i = 1;
+        int ec = 0;
         for(SootClass sc : Scene.v().getApplicationClasses()) {
-            if(!sc.getName().contains("jdk.")){
+            System.out.println("[WEIMINN] Loading: " + sc);
+                if(!sc.getName().contains("jdk.")){
 
                 //Output all loaded class names
-                System.err.println(sc);
+                // System.out.println("[WEIMINN] Loading: " + sc);
 
                 if(sc.getName().equals(mainClassStr)){
                     mainClass = sc;
@@ -99,9 +122,13 @@ public class JavaLink extends SceneTransformer {
 
 
                 for (SootMethod m : sc.getMethods()) {
+                    System.err.println("[WEIMINN] |" + i + "/" + len + "| Class: " + sc + ", Method: " + m);
                     entryPoints.add(m);
                 }
+                System.out.println("Done setting for " + sc);
+                ec++;
             }
+            i++;
         }
 
         if(mainClass==null){
@@ -109,12 +136,19 @@ public class JavaLink extends SceneTransformer {
             System.exit(0);
         }
 
+        System.out.println("[WEIMINN] Setting "+ ec +" entry points");
         Scene.v().setEntryPoints(entryPoints);
 
 
         //enable call graph
+        System.out.println("[WEIMINN] Enabling CHACallGraph");
+        Instant start = Instant.now();
         enableCHACallGraph();
+        Instant end = Instant.now();
+        Duration timeElapsed = Duration.between(start, end);
+        System.out.println("[WEIMINN] CG Build Time: "+ timeElapsed.toMinutes() +" minutes");
 
+        System.out.println("[WEIMINN] Running Packs");
         PackManager.v().runPacks();
         System.out.println("=============");
         System.out.println("=============");
@@ -124,7 +158,9 @@ public class JavaLink extends SceneTransformer {
             Pattern p = Pattern.compile("\\$[0-9]+");
             Matcher m = p.matcher(tem);
             if(!m.find()){
-                System.out.println(tem);
+                System.out.println("[WEIMINN] Cannot find unique method: " + tem);
+            } else {
+                System.out.println("[WEIMINN] Found unique method: " + tem);
             }
 
         }
@@ -427,21 +463,36 @@ public class JavaLink extends SceneTransformer {
     @Override
     protected void internalTransform(String phaseName,
                                      Map options) {
+        System.out.println("[WEIMINN] Starting overridden internalTransform");
         CallGraph bigCallGraph = new CallGraph();
         CallGraph callGraph = Scene.v().getCallGraph();
         int sieze = callGraph.size();
+        System.out.println("[WEIMINN] CG size: " + callGraph.size());
+
+        try {
+            System.out.println("[WEIMINN] Writing Callgraph...");
+            List<String> strEdges = new ArrayList<String>();
+            for (Edge edge: callGraph.edges) {
+                strEdges.add(edge.src().method().getDeclaringClass().getName() + "::" + edge.src().method().getName() + " -> " + edge.tgt().method().getDeclaringClass().getName() + "::" + edge.tgt().method().getName());
+            }
+            Path file = Paths.get("cg.txt");
+            Files.write(file, strEdges, StandardCharsets.UTF_8);
+            System.out.println("[WEIMINN] Done writing Callgraph");
+        } catch (Exception e) {
+
+        }
 
         //search methods in mainclass which call checkPermission
         Map<String,PermissionMthod> serviceHasPermissionMethods = new HashMap<String,PermissionMthod>();
 
         List<SootMethod> mainClassMethodList = mainClass.getMethods();
-        System.out.println(mainClassMethodList.size());
+        // System.out.println(mainClassMethodList.size());
 
         if (mainClassMethodList.size() == 0) {
             System.out.println(mainClassStr + "DOES NOT EXIST");
         }
         for (SootMethod m : mainClassMethodList) {
-            System.out.println(m);
+            System.out.println("Found " + m + " in the main class");
         }
 
         // find permission
@@ -462,7 +513,7 @@ public class JavaLink extends SceneTransformer {
                 SootMethod m = permissionMthod.parentMethod;
                 List<String> visitedMethodSig = new ArrayList<String>();
                 System.out.println("#########################");
-                System.out.println("SEARCH FROM" + m + permissionMthod.permissionStrs);
+                System.out.println("SEARCH FROM " + m + permissionMthod.permissionStrs);
                 System.out.println("#########################");
                 pre_visit(m, null, callGraph, bigCallGraph, permissionMthod.permissionStrs, visitedMethodSig);
             }
@@ -478,7 +529,7 @@ public class JavaLink extends SceneTransformer {
                 if (contains) {
                     List<String> visitedMethodSig = new ArrayList<String>();
                     System.out.println("#########################");
-                    System.out.println("SEARCH FROM" + m);
+                    System.out.println("SEARCH FROM " + m);
                     System.out.println("#########################");
                     uniqueMethodList.add(m.toString());
                     List<String> permissionStrs = new ArrayList<String>();
@@ -488,6 +539,7 @@ public class JavaLink extends SceneTransformer {
         }else{
             System.out.println("Unsupported phaseName, Please check");
         }
+        System.out.println("[WEIMINN] Ended overridden internalTransform");
         System.out.println("\n\n\n\n");
 
     }

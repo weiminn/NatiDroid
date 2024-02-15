@@ -206,7 +206,8 @@ def process_soong_ninja():
 
 
 def process_out_ninja():
-    file = open('/Volumes/android/android-8.0.0_r34/out/build-aosp_arm64.ninja', 'r')
+    # file = open('/Volumes/android/android-8.0.0_r34/out/build-aosp_arm64.ninja', 'r')
+    file = open('/home/weiminn/Documents/aosp14/out/build-sdk_phone_x86_64.ninja', 'r')
     json_list = []
     while True:
         line = file.readline()
@@ -221,7 +222,8 @@ def process_out_ninja():
                     a = re.findall('\$\((.*?)\)', command)
                     for tem in a:
 
-                        cat_command = '/Volumes/android/android-8.0.0_r34/' + tem.replace('cat ', '')
+                        # cat_command = '/Volumes/android/android-8.0.0_r34/' + tem.replace('cat ', '')
+                        cat_command = '/home/weiminn/Documents/aosp14/' + tem.replace('cat ', '')
 
                         b = os.popen('cat ' + cat_command)
                         text2 = b.read().replace('\n',' ')
@@ -251,7 +253,7 @@ def process_out_ninja():
             break
     file.close()
 
-    with open('tem/build-aosp_arm64.json', 'w') as file_obj:
+    with open('/home/weiminn/Documents/NatiDroid/build-sdk_phone_x86_64.json', 'w') as file_obj:
         json.dump(json_list, file_obj)
 
 if __name__ == '__main__':

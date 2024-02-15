@@ -51,7 +51,7 @@ public class CppLink extends SceneTransformer {
             System.exit(1);
         }
 
-        String classesDir = "AndroidSdk/sources/android-26";
+        String classesDir = "/home/weiminn/Documents/NatiDroid/android14.jar";
 
         String javapath = "";
         String path = config.loadJarPath();

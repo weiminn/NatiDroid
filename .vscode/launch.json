@@ -1,0 +1,35 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "findCppLink",
+            "request": "launch",
+            "mainClass": "findCppLink",
+            "projectName": "NatiDroid_ce20e044"
+        },
+        {
+            "type": "java",
+            "name": "findJavaLink",
+            "request": "launch",
+            "mainClass": "findJavaLink",
+            "projectName": "NatiDroid_ce20e044"
+        },
+        {
+            "type": "java",
+            "name": "findJavaLink_test_maps_transform",
+            "request": "launch",
+            "mainClass": "findJavaLink_test_maps_transform",
+            "projectName": "NatiDroid_ce20e044"
+        }
+    ]
+}

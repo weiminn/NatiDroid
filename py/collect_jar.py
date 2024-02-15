@@ -8,7 +8,8 @@ from shutil import copyfile
 version = '7.0'
 project_path = '/android-7.0.0_r33/out/target/common/obj/JAVA_LIBRARIES'
 
-
+version = '14.0'
+project_path = '/home/weiminn/Documents/aosp14/out/target/common/obj/JAVA_LIBRARIES'
 
 def findAllFile(base):
     dirs = os.listdir(base)

@@ -35,7 +35,8 @@ def process_soong_ninja():
     json_list = []
 
     # Load configuration items
-    file = open(project_path + '/out/soong/build.ninja', 'r')
+    # file = open(project_path + '/out/soong/build.ninja', 'r')
+    file = open('/home/weiminn/Documents/aosp14/out/soong/build.ninja', 'r')
     global_dic = {}
 
     rule_dic_all = {}
@@ -180,7 +181,8 @@ def process_soong_ninja():
     print(len(global_dic.keys()))
     print(len(json_list))
 
-    with open('tem/out_build_ninja.json', 'w') as file_obj:
+    with open('/home/weiminn/Documents/NatiDroid/out_build_ninja.json', 'w') as file_obj:
+    # with open('tem/out_build_ninja.json', 'w') as file_obj:
         json.dump(json_list, file_obj)
 
     # # out/soong/.intermediates/frameworks/base/core/jni/libandroid_runtime/android_arm64_armv8-a_shared_core/obj/frameworks/base/core/jni/android_hardware_Camera.o $
